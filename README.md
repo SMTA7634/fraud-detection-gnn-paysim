@@ -131,11 +131,7 @@ pip install torch_geometric
 
 ---
 
-## Interview Talking Points
 
-- Why PR-AUC over accuracy: accuracy is trivially 98%+ by predicting all-legit. PR-AUC measures
-  how well the model ranks the rare fraud cases.
-- Why temporal split: random splits leak future fraud patterns into training.
 - Why the GNN underperforms XGBoost here: the fraud signal is in individual features, not network
   structure. The graph is too sparse (0.11 edges/node) for message passing to dominate.
 - Model 3 vs Model 4: different business questions — transaction blocking vs account risk scoring.
