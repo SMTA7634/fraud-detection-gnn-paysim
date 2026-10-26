@@ -1,0 +1,522 @@
+<title>Account Graph Structure</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #1c2128;
+  --border:    #30363d;
+  --fg:        #e6edf3;
+  --muted:     #8b949e;
+  --fraud:     #ff6b6b;
+  --fraud-dim: rgba(255,107,107,.13);
+  --legit:     #3fb950;
+  --legit-dim: rgba(63,185,80,.11);
+  --edge:      #58a6ff;
+  --edge-dim:  rgba(88,166,255,.18);
+  --feat:      #d2a8ff;
+  --amber:     #e3b341;
+  --teal:      #39d0d0;
+  --teal-dim:  rgba(57,208,208,.13);
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:       #f6f8fa; --surface: #ffffff; --surface2: #f0f3f6;
+    --border:   #d0d7de; --fg: #1f2328;      --muted: #656d76;
+    --fraud:    #cf222e; --fraud-dim: rgba(207,34,46,.08);
+    --legit:    #1a7f37; --legit-dim: rgba(26,127,55,.08);
+    --edge:     #0969da; --edge-dim: rgba(9,105,218,.12);
+    --feat:     #8250df; --amber: #9a6700;
+    --teal:     #0a8080; --teal-dim: rgba(10,128,128,.1);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg:#f6f8fa;--surface:#ffffff;--surface2:#f0f3f6;--border:#d0d7de;
+  --fg:#1f2328;--muted:#656d76;--fraud:#cf222e;--fraud-dim:rgba(207,34,46,.08);
+  --legit:#1a7f37;--legit-dim:rgba(26,127,55,.08);--edge:#0969da;
+  --edge-dim:rgba(9,105,218,.12);--feat:#8250df;--amber:#9a6700;
+  --teal:#0a8080;--teal-dim:rgba(10,128,128,.1);color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:var(--sans);font-size:14px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:32px;
+}
+.header{max-width:960px;margin:0 auto 36px;border-bottom:1px solid var(--border);padding-bottom:22px}
+.header .eye{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.header h1{font-size:clamp(20px,4vw,28px);font-weight:600}
+.header p{margin-top:8px;color:var(--muted);font-size:13px;max-width:64ch}
+.slabel{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px}
+.card h3{font-size:13px;font-weight:600;margin-bottom:14px}
+
+/* layout grids */
+.full{max-width:960px;margin:0 auto 36px}
+.two{max-width:960px;margin:0 auto 36px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.three{max-width:960px;margin:0 auto 36px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+@media(max-width:700px){.two,.three{grid-template-columns:1fr}}
+
+/* comparison table */
+.cmp{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.cmp th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:5px 10px 10px 0;border-bottom:1px solid var(--border)}
+.cmp td{padding:6px 10px 6px 0;border-bottom:1px solid var(--border);vertical-align:top}
+.cmp tr:last-child td{border-bottom:none}
+.cmp .m3{color:var(--edge)} .cmp .m4{color:var(--teal)} .cmp .label{color:var(--muted);font-size:12px}
+
+/* feature grid */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.feat-item{background:var(--surface2);border-radius:5px;padding:8px 10px;font-size:11px}
+.feat-name{font-family:var(--mono);color:var(--feat);display:block;margin-bottom:2px}
+.feat-desc{color:var(--muted);line-height:1.4}
+.tag{display:inline-block;font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600}
+.tag-out{background:var(--fraud-dim);color:var(--fraud)}
+.tag-in{background:var(--legit-dim);color:var(--legit)}
+.tag-com{background:var(--edge-dim);color:var(--edge)}
+
+/* callout */
+.callout{max-width:960px;margin:0 auto 30px;border-radius:8px;padding:14px 18px;font-size:12px;line-height:1.6}
+.callout.amber{background:rgba(227,179,65,.1);border:1px solid var(--amber)}
+.callout.amber strong{color:var(--amber)}
+.callout.teal{background:var(--teal-dim);border:1px solid var(--teal)}
+.callout.teal strong{color:var(--teal)}
+</style>
+
+<div class="header">
+  <div class="eye">Model 4 — Account-Node GNN · PaySim Fraud Detection</div>
+  <h1>Account-Node Graph: Structure &amp; Node Setup</h1>
+  <p>How raw transactions are transformed into an account-level graph — each account becomes a node, each transaction becomes an edge, and the GNN learns to identify fraudster accounts from their neighbourhood patterns.</p>
+</div>
+
+<!-- ═══ SECTION 1: THE KEY SHIFT ═══ -->
+<div class="full">
+  <div class="slabel">Section 1 — The shift from transaction-node (Model 3) to account-node (Model 4)</div>
+  <div class="card">
+    <svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">
+      <defs>
+        <marker id="ar" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="var(--muted)"/>
+        </marker>
+        <marker id="ar2" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="var(--teal)"/>
+        </marker>
+      </defs>
+
+      <!-- LEFT PANEL: transactions (raw data) -->
+      <text x="175" y="22" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--muted)" letter-spacing=".05em">RAW TRANSACTIONS</text>
+
+      <!-- header row -->
+      <rect x="20" y="30" width="310" height="20" rx="3" fill="var(--surface2)"/>
+      <text x="30" y="44" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--muted)">step  nameOrig   nameDest   amount    isFraud</text>
+
+      <!-- T1 fraud row -->
+      <rect x="20" y="52" width="310" height="18" rx="2" fill="var(--fraud-dim)"/>
+      <text x="30" y="65" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--fraud)"> 100   C111       M456       $9,800   FRAUD</text>
+
+      <!-- T2 fraud row -->
+      <rect x="20" y="72" width="310" height="18" rx="2" fill="var(--fraud-dim)"/>
+      <text x="30" y="85" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--fraud)"> 105   C222       M456       $3,200   FRAUD</text>
+
+      <!-- T3 legit -->
+      <rect x="20" y="92" width="310" height="18" rx="2" fill="var(--legit-dim)"/>
+      <text x="30" y="105" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--legit)"> 123   C333       M456        $410   LEGIT</text>
+
+      <!-- T4 legit -->
+      <rect x="20" y="112" width="310" height="18" rx="2" fill="var(--legit-dim)"/>
+      <text x="30" y="125" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--legit)"> 200   C444       Q789         $75   LEGIT</text>
+
+      <!-- T5 legit -->
+      <rect x="20" y="132" width="310" height="18" rx="2" fill="var(--legit-dim)"/>
+      <text x="30" y="145" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--legit)"> 215   C555       Q789        $200   LEGIT</text>
+
+      <!-- MODEL 3 annotation -->
+      <text x="30" y="175" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--edge)">MODEL 3: each ROW = one node (5 nodes here)</text>
+      <text x="30" y="190" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--muted)">Edges: shared nameDest within 30 steps</text>
+      <text x="30" y="205" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--muted)">→ T1–T2–T3 connected (same M456, Δ≤30)</text>
+      <text x="30" y="220" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--muted)">→ T4–T5 connected (same Q789, Δ=15)</text>
+
+      <text x="30" y="242" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--teal)">MODEL 4: each ACCOUNT = one node (6 nodes here)</text>
+      <text x="30" y="257" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--muted)">Edges: one per transaction (every row creates an edge)</text>
+
+      <!-- ARROW -->
+      <line x1="350" y1="130" x2="400" y2="130" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+      <text x="370" y="122" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--muted)" text-anchor="middle">build</text>
+      <text x="370" y="132" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--muted)" text-anchor="middle">graph</text>
+
+      <!-- RIGHT PANEL: account-node graph -->
+      <text x="660" y="22" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" fill="var(--muted)" letter-spacing=".05em">ACCOUNT-NODE GRAPH (Model 4)</text>
+
+      <!-- M456 hub -->
+      <circle cx="660" cy="120" r="32" fill="var(--legit-dim)" stroke="var(--legit)" stroke-width="2"/>
+      <text x="660" y="115" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="var(--legit)">M456</text>
+      <text x="660" y="129" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--legit)">recipient</text>
+      <text x="660" y="141" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--legit)">LEGIT node</text>
+
+      <!-- C111 fraud -->
+      <circle cx="490" cy="65" r="26" fill="var(--fraud-dim)" stroke="var(--fraud)" stroke-width="2.5"/>
+      <text x="490" y="61" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="var(--fraud)">C111</text>
+      <text x="490" y="74" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--fraud)">FRAUD</text>
+      <text x="490" y="101" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--muted)">label=1</text>
+
+      <!-- C222 fraud -->
+      <circle cx="490" cy="175" r="26" fill="var(--fraud-dim)" stroke="var(--fraud)" stroke-width="2.5"/>
+      <text x="490" y="171" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="var(--fraud)">C222</text>
+      <text x="490" y="184" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--fraud)">FRAUD</text>
+      <text x="490" y="211" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--muted)">label=1</text>
+
+      <!-- C333 legit -->
+      <circle cx="590" cy="220" r="22" fill="var(--legit-dim)" stroke="var(--legit)" stroke-width="1.5"/>
+      <text x="590" y="216" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--legit)">C333</text>
+      <text x="590" y="228" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+
+      <!-- C444 legit -->
+      <circle cx="790" cy="90" r="22" fill="var(--legit-dim)" stroke="var(--legit)" stroke-width="1.5"/>
+      <text x="790" y="86" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--legit)">C444</text>
+      <text x="790" y="98" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+
+      <!-- Q789 hub -->
+      <circle cx="840" cy="170" r="26" fill="var(--legit-dim)" stroke="var(--legit)" stroke-width="1.5"/>
+      <text x="840" y="166" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--legit)">Q789</text>
+      <text x="840" y="179" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+
+      <!-- C555 legit -->
+      <circle cx="790" cy="240" r="22" fill="var(--legit-dim)" stroke="var(--legit)" stroke-width="1.5"/>
+      <text x="790" y="236" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--legit)">C555</text>
+      <text x="790" y="248" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+
+      <!-- EDGES (transactions) -->
+      <!-- C111 → M456  (T1) -->
+      <line x1="515" y1="75" x2="628" y2="103" stroke="var(--fraud)" stroke-width="2" opacity=".7"/>
+      <text x="560" y="82" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--fraud)">T1</text>
+      <!-- C222 → M456  (T2) -->
+      <line x1="515" y1="165" x2="629" y2="138" stroke="var(--fraud)" stroke-width="2" opacity=".7"/>
+      <text x="558" y="160" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--fraud)">T2</text>
+      <!-- C333 → M456  (T3) -->
+      <line x1="609" y1="207" x2="640" y2="151" stroke="var(--legit)" stroke-width="1.5" opacity=".7"/>
+      <text x="618" y="190" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--legit)">T3</text>
+      <!-- C444 → Q789  (T4) -->
+      <line x1="806" y1="110" x2="826" y2="145" stroke="var(--legit)" stroke-width="1.5" opacity=".7"/>
+      <text x="824" y="125" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--legit)">T4</text>
+      <!-- C555 → Q789  (T5) -->
+      <line x1="806" y1="230" x2="827" y2="195" stroke="var(--legit)" stroke-width="1.5" opacity=".7"/>
+      <text x="824" y="220" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--legit)">T5</text>
+
+      <!-- label: 6 unique accounts -->
+      <text x="660" y="258" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="var(--muted)">6 unique accounts → 6 nodes · 5 transactions → 5 edges (×2 undirected)</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══ SECTION 2: WHAT CHANGED ═══ -->
+<div class="full">
+  <div class="slabel">Section 2 — Model 3 vs Model 4 node structure</div>
+  <div class="card">
+    <table class="cmp">
+      <thead>
+        <tr>
+          <th>Property</th>
+          <th class="m3">Model 3 — Transaction-node</th>
+          <th class="m4">Model 4 — Account-node</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="label">What is a node?</td>
+          <td class="m3">One transaction (one row)</td>
+          <td class="m4">One account (nameOrig or nameDest)</td>
+        </tr>
+        <tr>
+          <td class="label">Node count (250k subset)</td>
+          <td class="m3">250,000</td>
+          <td class="m4">462,515</td>
+        </tr>
+        <tr>
+          <td class="label">Node features</td>
+          <td class="m3">12 direct (amount, type, step…)</td>
+          <td class="m4">10 aggregated (out_degree, drain_frac…)</td>
+        </tr>
+        <tr>
+          <td class="label">What is an edge?</td>
+          <td class="m3">Shared nameDest within 30 steps</td>
+          <td class="m4">A transaction between two accounts</td>
+        </tr>
+        <tr>
+          <td class="label">Edge count (undirected)</td>
+          <td class="m3">13,400</td>
+          <td class="m4">250,000</td>
+        </tr>
+        <tr>
+          <td class="label">Avg edges per node</td>
+          <td class="m3">0.11 (mostly isolated)</td>
+          <td class="m4">1.08 (everyone is connected to someone)</td>
+        </tr>
+        <tr>
+          <td class="label">What is the label?</td>
+          <td class="m3">Is this transaction fraudulent?</td>
+          <td class="m4">Is this account a fraudster?</td>
+        </tr>
+        <tr>
+          <td class="label">Fraud rate</td>
+          <td class="m3">3.3% of transactions</td>
+          <td class="m4">1.8% of accounts</td>
+        </tr>
+        <tr>
+          <td class="label">Business question</td>
+          <td class="m3">Block this payment in real time?</td>
+          <td class="m4">Flag / suspend this account?</td>
+        </tr>
+        <tr>
+          <td class="label">OOT PR-AUC</td>
+          <td class="m3">0.9706</td>
+          <td class="m4">0.8051</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SECTION 3: NODE FEATURES ═══ -->
+<div class="two">
+  <div>
+    <div class="slabel">Section 3a — Account node feature vector (10 dims)</div>
+    <div class="card">
+      <h3>What each account node "knows"</h3>
+      <div class="feat-grid">
+        <div class="feat-item">
+          <span class="feat-name">out_degree</span>
+          <span class="tag tag-out">outgoing</span>
+          <span class="feat-desc">How many transactions this account SENT</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">out_total_log</span>
+          <span class="tag tag-out">outgoing</span>
+          <span class="feat-desc">log1p(total $ sent). Large = big sender</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">out_avg_log</span>
+          <span class="tag tag-out">outgoing</span>
+          <span class="feat-desc">log1p(avg $ per outgoing txn)</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">out_drain_frac</span>
+          <span class="tag tag-out">outgoing</span>
+          <span class="feat-desc">Fraction where pct_balance_used ≥ 0.99 — account fully drained. Fraud = 1.0 always</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">out_transfer_frac</span>
+          <span class="tag tag-out">outgoing</span>
+          <span class="feat-desc">Fraction of outgoing that are TRANSFER or CASH_OUT — the only types with fraud</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">in_degree</span>
+          <span class="tag tag-in">incoming</span>
+          <span class="feat-desc">How many transactions this account RECEIVED</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">in_total_log</span>
+          <span class="tag tag-in">incoming</span>
+          <span class="feat-desc">log1p(total $ received). High = mule account</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">in_distinct_senders</span>
+          <span class="tag tag-in">incoming</span>
+          <span class="feat-desc">Unique senders to this account. Many fraud senders → high = suspicious recipient</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">total_degree</span>
+          <span class="tag tag-com">combined</span>
+          <span class="feat-desc">out + in. Overall activity level</span>
+        </div>
+        <div class="feat-item">
+          <span class="feat-name">out_in_ratio</span>
+          <span class="tag tag-com">combined</span>
+          <span class="feat-desc">out ÷ total. 1.0 = only sends, never receives. Fraud accounts often = 1.0</span>
+        </div>
+      </div>
+      <p style="margin-top:14px;font-size:11px;color:var(--muted);line-height:1.6">
+        All 10 features are <strong style="color:var(--fg)">StandardScaler-normalised</strong> using training-account statistics only, then applied to all 462k accounts.
+      </p>
+    </div>
+  </div>
+
+  <div>
+    <div class="slabel">Section 3b — How the fraud label is assigned</div>
+    <div class="card" style="margin-bottom:18px">
+      <h3>Account label: fraud sender</h3>
+      <svg viewBox="0 0 380 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;margin-bottom:10px">
+        <!-- transaction rows -->
+        <rect x="10" y="10" width="360" height="210" rx="7" fill="var(--surface2)"/>
+        <text x="20" y="30" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--muted)">nameOrig   isFraud  →  account label</text>
+        <line x1="10" y1="36" x2="370" y2="36" stroke="var(--border)" stroke-width="1"/>
+
+        <!-- row 1: C111, fraud -->
+        <rect x="10" y="38" width="360" height="22" fill="var(--fraud-dim)"/>
+        <text x="20" y="53" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--fraud)">C111        1       →  C111 = FRAUD  ✓</text>
+
+        <!-- row 2: C222, fraud -->
+        <rect x="10" y="62" width="360" height="22" fill="var(--fraud-dim)"/>
+        <text x="20" y="77" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--fraud)">C222        1       →  C222 = FRAUD  ✓</text>
+
+        <!-- row 3: C333, legit -->
+        <rect x="10" y="86" width="360" height="22" fill="var(--legit-dim)" opacity=".6"/>
+        <text x="20" y="101" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--legit)">C333        0       →  C333 = LEGIT</text>
+
+        <!-- row 4: C444, legit -->
+        <rect x="10" y="110" width="360" height="22" fill="var(--legit-dim)" opacity=".6"/>
+        <text x="20" y="125" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--legit)">C444        0       →  C444 = LEGIT</text>
+
+        <!-- M456 note -->
+        <rect x="10" y="142" width="360" height="22" fill="rgba(88,166,255,.06)"/>
+        <text x="20" y="157" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--edge)">M456 (recipient)    →  M456 = LEGIT ← not labelled fraud</text>
+
+        <text x="20" y="185" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="var(--muted)">M456 received money from fraudsters</text>
+        <text x="20" y="200" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="var(--muted)">but in PaySim it is a randomly assigned</text>
+        <text x="20" y="215" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="var(--muted)">mule — not independently a fraud actor.</text>
+      </svg>
+    </div>
+
+    <div class="slabel">Section 3c — Account-level split</div>
+    <div class="card">
+      <h3>Train / Test / OOT by account first-seen step</h3>
+      <svg viewBox="0 0 380 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">
+        <!-- timeline bar -->
+        <rect x="10" y="28" width="360" height="20" rx="4" fill="var(--surface2)"/>
+        <!-- dev region -->
+        <rect x="10" y="28" width="258" height="20" rx="4" fill="var(--edge-dim)"/>
+        <!-- OOT region -->
+        <rect x="268" y="28" width="102" height="20" rx="3" fill="var(--teal-dim)"/>
+        <!-- boundary line -->
+        <line x1="268" y1="24" x2="268" y2="52" stroke="var(--amber)" stroke-width="2"/>
+        <text x="268" y="20" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--amber)">step 594</text>
+        <!-- labels -->
+        <text x="139" y="42" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--edge)">DEV ACCOUNTS (first_step ≤ 594)</text>
+        <text x="319" y="42" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--teal)">OOT</text>
+        <!-- counts -->
+        <text x="90" y="65" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--muted)">Train: 360,616</text>
+        <text x="210" y="65" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--muted)">Test: 90,154</text>
+        <text x="319" y="65" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="9" fill="var(--teal)">OOT: 11,745</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECTION 4: MESSAGE PASSING ═══ -->
+<div class="full">
+  <div class="slabel">Section 4 — What GraphSAGE sees at the account level (2-hop neighbourhood)</div>
+  <div class="card">
+    <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">
+      <defs>
+        <marker id="ag" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="var(--teal)"/>
+        </marker>
+      </defs>
+
+      <!-- LAYER 0: raw nodes -->
+      <text x="90"  y="18" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--muted)">LAYER 0 — raw features</text>
+      <text x="450" y="18" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--muted)">LAYER 1 — 1-hop view</text>
+      <text x="780" y="18" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--muted)">LAYER 2 — 2-hop view</text>
+
+      <!-- dividers -->
+      <line x1="270" y1="10" x2="270" y2="270" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>
+      <line x1="600" y1="10" x2="600" y2="270" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>
+
+      <!-- === LAYER 0 nodes === -->
+      <!-- C111 fraud -->
+      <circle cx="60"  cy="100" r="28" fill="var(--fraud-dim)" stroke="var(--fraud)" stroke-width="2.5"/>
+      <text x="60" y="96" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--fraud)">C111</text>
+      <text x="60" y="109" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--fraud)">FRAUD</text>
+      <text x="60" y="138" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--muted)">drain=1.0</text>
+      <text x="60" y="149" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--muted)">xfer=1.0</text>
+
+      <!-- C222 fraud -->
+      <circle cx="60"  cy="200" r="28" fill="var(--fraud-dim)" stroke="var(--fraud)" stroke-width="2.5"/>
+      <text x="60" y="196" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--fraud)">C222</text>
+      <text x="60" y="209" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--fraud)">FRAUD</text>
+      <text x="60" y="238" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--muted)">drain=1.0</text>
+
+      <!-- M456 legit hub -->
+      <circle cx="170" cy="150" r="30" fill="var(--legit-dim)" stroke="var(--legit)" stroke-width="2"/>
+      <text x="170" y="146" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--legit)">M456</text>
+      <text x="170" y="159" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--legit)">LEGIT</text>
+      <text x="170" y="190" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--muted)">in_deg=3</text>
+      <text x="170" y="201" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--muted)">senders=3</text>
+
+      <!-- C333 legit -->
+      <circle cx="60"  cy="265" r="22" fill="var(--legit-dim)" stroke="var(--legit)" stroke-width="1.5"/>
+      <text x="60" y="261" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="9" font-weight="600" fill="var(--legit)">C333</text>
+      <text x="60" y="273" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--legit)">LEGIT</text>
+
+      <!-- raw edges -->
+      <line x1="88" y1="120" x2="141" y2="138" stroke="var(--fraud)" stroke-width="1.5" opacity=".6"/>
+      <line x1="88" y1="180" x2="141" y2="162" stroke="var(--fraud)" stroke-width="1.5" opacity=".6"/>
+      <line x1="80" y1="258" x2="141" y2="172" stroke="var(--legit)" stroke-width="1.5" opacity=".5"/>
+
+      <!-- === LAYER 1: C111 sees M456 (and C222, C333 through M456) === -->
+      <circle cx="420" cy="100" r="28" fill="var(--fraud-dim)" stroke="var(--fraud)" stroke-width="2.5"/>
+      <text x="420" y="96" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--fraud)">C111</text>
+      <text x="420" y="109" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--fraud)">FRAUD</text>
+      <!-- embedding now includes neighbour M456 info -->
+      <rect x="340" y="120" width="160" height="36" rx="4" fill="rgba(88,166,255,.1)" stroke="var(--edge)" stroke-width="1"/>
+      <text x="420" y="135" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--edge)">h_C111 ← [h_C111 ‖ mean(h_M456)]</text>
+      <text x="420" y="148" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--muted)">C111 now "sees" M456's 3 senders</text>
+
+      <line x1="300" y1="100" x2="390" y2="100" stroke="var(--teal)" stroke-width="1.5" marker-end="url(#ag)"/>
+
+      <!-- === LAYER 2: C111 sees C222 through M456 === -->
+      <circle cx="750" cy="100" r="28" fill="var(--fraud-dim)" stroke="var(--fraud)" stroke-width="3"/>
+      <text x="750" y="96" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" font-weight="600" fill="var(--fraud)">C111</text>
+      <text x="750" y="109" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--fraud)">FRAUD</text>
+      <rect x="660" y="120" width="180" height="52" rx="4" fill="rgba(210,168,255,.1)" stroke="var(--feat)" stroke-width="1"/>
+      <text x="750" y="136" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="8" fill="var(--feat)">h_C111 ← [h_C111 ‖ mean(h_M456')]</text>
+      <text x="750" y="149" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--muted)">M456' already includes C222 info</text>
+      <text x="750" y="162" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="8" fill="var(--feat)">→ C111 indirectly sees C222 (fraud)</text>
+
+      <line x1="630" y1="100" x2="720" y2="100" stroke="var(--teal)" stroke-width="1.5" marker-end="url(#ag)"/>
+
+      <!-- 2-hop label -->
+      <text x="750" y="200" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="var(--muted)">C111 now has a representation</text>
+      <text x="750" y="215" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="var(--muted)">that encodes its 2-hop neighbourhood:</text>
+      <text x="750" y="232" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--fraud)">C111 ← M456 ← C222 (another fraud)</text>
+      <text x="750" y="252" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="var(--muted)">XGBoost cannot see this pattern.</text>
+
+      <!-- caption -->
+      <text x="450" y="272" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="var(--muted)">Each GraphSAGE layer extends the account's view by one hop. Two layers = view of accounts two transactions away.</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══ SECTION 5: RESULTS ═══ -->
+<div class="three">
+  <div class="card">
+    <div class="slabel" style="margin-bottom:6px">OOT PR-AUC</div>
+    <div style="font-size:36px;font-weight:600;font-family:var(--mono);color:var(--teal)">0.8051</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">Account-level fraud ranking</div>
+  </div>
+  <div class="card">
+    <div class="slabel" style="margin-bottom:6px">OOT Recall</div>
+    <div style="font-size:36px;font-weight:600;font-family:var(--mono);color:var(--legit)">87.9%</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">1,453 of 1,654 fraud accounts caught</div>
+  </div>
+  <div class="card">
+    <div class="slabel" style="margin-bottom:6px">Graph density vs M3</div>
+    <div style="font-size:36px;font-weight:600;font-family:var(--mono);color:var(--amber)">18.7×</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">250k edges vs 13.4k in Model 3</div>
+  </div>
+</div>
+
+<div class="callout teal">
+  <strong>Key insight:</strong> Model 4 answers a different question than Models 1–3. Transaction-level models (1–3) block a payment before it moves. Account-level Model 4 scores whether an account is a fraudster — used for overnight account suspension, KYC risk tiers, or fraud ring investigation. Both are needed in a real fraud system.
+</div>
+
+<div class="callout amber">
+  <strong>Leakage note (for interviews):</strong> Model 4's node features are aggregated over ALL transactions, including those after the OOT cutoff — technically leaky. In production you'd use an event-time feature store: compute each account's features up to the moment of scoring, not beyond it. Always mention this trade-off when presenting this model.
+</div>

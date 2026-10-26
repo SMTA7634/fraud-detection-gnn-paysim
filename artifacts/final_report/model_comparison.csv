@@ -1,0 +1,9 @@
+model,label,dataset,features,graph,pr_auc,roc_auc,f1,precision,recall,fn,fp,prediction_unit
+Model 1,"XGBoost
+Baseline",50k,12,None,1.0,1.0,0.9997,1.0,0.9994,1,0,transaction
+Model 2,"XGBoost
++Graph Feats",50k,16,Hand-crafted recipient features,1.0,1.0,0.9997,0.9994,1.0,0,1,transaction
+Model 3,"GraphSAGE
+Txn-Node",250k,12,"13,400 edges (shared nameDest)",0.9706,0.9872,0.8868,0.941,0.8386,267,87,transaction
+Model 4,"GraphSAGE
+Account-Node",250k,10,"250,000 edges (transactions)",0.8051,0.9638,0.7457,0.6478,0.8785,201,790,account

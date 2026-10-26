@@ -1,0 +1,35 @@
+# ---------------------------------------------------------------------------
+# Model 3 — GraphSAGE-style GNN
+# Graph node design: TRANSACTION-NODE (each transaction = node)
+# Edges: connect transactions sharing a sender OR recipient account,
+#        subject to time-aware rules (earlier tx -> later tx only)
+# ---------------------------------------------------------------------------
+
+mlflow_experiment: "fraud_model_3_gnn"
+
+graph:
+  node_type: "transaction"       # each transaction is a node
+  edge_strategy: "shared_account_temporal"
+  max_time_window: 30            # only connect txns within 30 time steps
+  max_degree: 50                 # cap edges per node to avoid super-nodes dominating
+
+model:
+  architecture: "GraphSAGE"
+  hidden_channels: 64
+  num_layers: 2
+  aggregation: "mean"
+  dropout: 0.3
+  classifier_hidden: 32
+
+training:
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0005
+  batch_size: 512                # mini-batch neighbour sampling
+  num_neighbors: [10, 5]         # sample 10 neighbours in layer 1, 5 in layer 2
+  early_stopping_patience: 10
+  random_state: 42
+
+artifacts_dir: "artifacts/model_3_gnn"
+predictions_dir: "data/model_3_gnn/output"
+graph_dir: "data/model_3_gnn/intermediate"

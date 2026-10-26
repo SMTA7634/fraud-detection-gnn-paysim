@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------------------
+# Model 2 — XGBoost + Engineered Historical Graph Features
+# Inherits baseline settings; adds graph feature config
+# ---------------------------------------------------------------------------
+
+mlflow_experiment: "fraud_model_2_graph_features"
+
+model:
+  n_estimators: 500
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  scale_pos_weight: 1
+  eval_metric: "aucpr"
+  early_stopping_rounds: 30
+  random_state: 42
+
+graph_features:
+  # All features computed using ONLY transactions with step < current row's step
+  sender_tx_count_30d: true       # how many txns the sender made in last 30 steps
+  sender_total_amount_30d: true   # total amount sent in last 30 steps
+  sender_unique_recipients_30d: true
+  recipient_tx_count_30d: true
+  recipient_total_received_30d: true
+  sender_recency: true            # steps since sender's last transaction
+  recipient_recency: true
+
+features:
+  exclude:
+    - "nameOrig"
+    - "nameDest"
+    - "isFlaggedFraud"
+  one_hot_encode:
+    - "type"
+
+artifacts_dir: "artifacts/model_2_graph_features"
+predictions_dir: "data/model_2_graph_features/output"
+graph_features_dir: "data/model_2_graph_features/intermediate"

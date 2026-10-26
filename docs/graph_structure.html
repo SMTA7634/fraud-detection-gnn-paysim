@@ -1,0 +1,629 @@
+<title>GNN Graph Structure</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+/* ── token system ─────────────────────────────────────── */
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --border:    #30363d;
+  --fg:        #e6edf3;
+  --muted:     #8b949e;
+  --fraud:     #ff6b6b;
+  --fraud-bg:  rgba(255,107,107,.12);
+  --legit:     #3fb950;
+  --legit-bg:  rgba(63,185,80,.12);
+  --edge:      #58a6ff;
+  --edge-dim:  rgba(88,166,255,.3);
+  --feat:      #d2a8ff;
+  --amber:     #e3b341;
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'IBM Plex Sans', system-ui, sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:        #f6f8fa;
+    --surface:   #ffffff;
+    --border:    #d0d7de;
+    --fg:        #1f2328;
+    --muted:     #656d76;
+    --fraud:     #cf222e;
+    --fraud-bg:  rgba(207,34,46,.08);
+    --legit:     #1a7f37;
+    --legit-bg:  rgba(26,127,55,.08);
+    --edge:      #0969da;
+    --edge-dim:  rgba(9,105,218,.25);
+    --feat:      #8250df;
+    --amber:     #9a6700;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg:        #f6f8fa;
+  --surface:   #ffffff;
+  --border:    #d0d7de;
+  --fg:        #1f2328;
+  --muted:     #656d76;
+  --fraud:     #cf222e;
+  --fraud-bg:  rgba(207,34,46,.08);
+  --legit:     #1a7f37;
+  --legit-bg:  rgba(26,127,55,.08);
+  --edge:      #0969da;
+  --edge-dim:  rgba(9,105,218,.25);
+  --feat:      #8250df;
+  --amber:     #9a6700;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  padding-left:  max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px;
+}
+
+/* ── header ───────────────────────────────────────────── */
+.header {
+  max-width: 900px;
+  margin: 0 auto 40px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 24px;
+}
+.header .eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.header h1 {
+  font-size: clamp(20px, 4vw, 28px);
+  font-weight: 600;
+  color: var(--fg);
+  text-wrap: balance;
+}
+.header p {
+  margin-top: 8px;
+  color: var(--muted);
+  max-width: 60ch;
+  font-size: 13px;
+}
+
+/* ── section label ────────────────────────────────────── */
+.section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+/* ── two-col layout ───────────────────────────────────── */
+.two-col {
+  max-width: 900px;
+  margin: 0 auto 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .two-col { grid-template-columns: 1fr; }
+}
+
+/* ── card ─────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+.card h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--fg);
+}
+
+/* ── graph svg container ──────────────────────────────── */
+.graph-wrap {
+  max-width: 900px;
+  margin: 0 auto 40px;
+}
+.graph-wrap svg { width: 100%; height: auto; display: block; }
+
+/* ── feature table ────────────────────────────────────── */
+.feat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.feat-table th {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  text-align: left;
+  padding: 4px 8px 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.feat-table td {
+  padding: 5px 8px 5px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.feat-table tr:last-child td { border-bottom: none; }
+.feat-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--feat);
+  white-space: nowrap;
+}
+.feat-val {
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.feat-note { color: var(--muted); }
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-right: 2px;
+  font-weight: 600;
+}
+.tag-raw    { background: var(--legit-bg);  color: var(--legit);  }
+.tag-eng    { background: var(--fraud-bg);  color: var(--fraud);  }
+.tag-ohe    { background: rgba(210,168,255,.12); color: var(--feat); }
+
+/* ── message passing diagram ──────────────────────────── */
+.full-width { max-width: 900px; margin: 0 auto 40px; }
+
+/* ── edge rule box ────────────────────────────────────── */
+.rule-box {
+  max-width: 900px;
+  margin: 0 auto 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.rule-card {
+  flex: 1;
+  min-width: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+.rule-card .rule-icon {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+.rule-card h4 {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.rule-card p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.rule-card code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--edge);
+}
+
+/* ── note callout ─────────────────────────────────────── */
+.callout {
+  max-width: 900px;
+  margin: 0 auto 32px;
+  background: var(--fraud-bg);
+  border: 1px solid var(--fraud);
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: 12px;
+  color: var(--fg);
+}
+.callout strong { color: var(--fraud); }
+.callout.blue {
+  background: rgba(88,166,255,.08);
+  border-color: var(--edge);
+}
+.callout.blue strong { color: var(--edge); }
+</style>
+
+<!-- ═════════════════════════════════════════════════════════ -->
+<!-- HEADER -->
+<!-- ═════════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="eyebrow">Model 3 — GraphSAGE · PaySim Fraud Detection</div>
+  <h1>Transaction Graph: Node & Edge Structure</h1>
+  <p>How 50,000 transactions are wired into a graph, what each node knows, and how information flows between neighbours during GNN training.</p>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════ -->
+<!-- SECTION 1: GRAPH OVERVIEW DIAGRAM -->
+<!-- ═════════════════════════════════════════════════════════ -->
+<div class="graph-wrap">
+  <div class="section-label">Section 1 — The transaction-node graph</div>
+
+  <svg viewBox="0 0 860 400" xmlns="http://www.w3.org/2000/svg" aria-label="Transaction graph diagram">
+    <defs>
+      <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 Z" fill="var(--edge)"/>
+      </marker>
+      <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+
+    <!-- background panel -->
+    <rect x="10" y="10" width="840" height="380" rx="10" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+
+    <!-- ── Legend ── -->
+    <circle cx="680" cy="36" r="8" fill="var(--fraud)" opacity=".9"/>
+    <text x="694" y="40" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--muted)">Fraud transaction</text>
+    <circle cx="680" cy="58" r="8" fill="var(--legit)" opacity=".9"/>
+    <text x="694" y="62" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--muted)">Legit transaction</text>
+    <line x1="676" y1="80" x2="700" y2="80" stroke="var(--edge)" stroke-width="2"/>
+    <text x="708" y="84" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--muted)">Shared recipient edge</text>
+    <line x1="676" y1="100" x2="700" y2="100" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="708" y="104" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--muted)">No edge (>30 steps)</text>
+
+    <!-- ── Account grouping labels ── -->
+    <!-- Recipient M456 group ellipse -->
+    <ellipse cx="310" cy="215" rx="155" ry="95" fill="none" stroke="var(--edge)" stroke-width="1" stroke-dasharray="5,4" opacity=".4"/>
+    <text x="310" y="128" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--edge)" opacity=".7">nameDest = M456</text>
+    <text x="310" y="140" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--muted)">(shared recipient)</text>
+
+    <!-- Recipient Q789 group ellipse -->
+    <ellipse cx="620" cy="240" rx="120" ry="75" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="5,4" opacity=".4"/>
+    <text x="620" y="175" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)" opacity=".7">nameDest = Q789</text>
+    <text x="620" y="187" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--muted)">(different recipient)</text>
+
+    <!-- ── EDGES within M456 group ── -->
+    <!-- T1 — T2 (step diff = 5, connected) -->
+    <line x1="220" y1="215" x2="308" y2="170" stroke="var(--edge)" stroke-width="2" opacity=".8"/>
+    <!-- T2 — T3 (step diff = 18, connected) -->
+    <line x1="330" y1="163" x2="398" y2="210" stroke="var(--edge)" stroke-width="2" opacity=".8"/>
+    <!-- T1 — T3 (step diff = 23, connected) -->
+    <line x1="222" y1="210" x2="393" y2="212" stroke="var(--edge)" stroke-width="2" opacity=".8"/>
+    <!-- T3 — T4 (step diff = 48, NO edge, dashed) -->
+    <line x1="408" y1="225" x2="398" y2="262" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="4,3" opacity=".6"/>
+    <text x="430" y="252" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">|48| &gt; 30</text>
+
+    <!-- ── EDGES within Q789 group ── -->
+    <line x1="580" y1="225" x2="660" y2="257" stroke="var(--edge)" stroke-width="2" opacity=".8"/>
+
+    <!-- ── No edge between groups (different nameDest) ── -->
+    <line x1="420" y1="220" x2="555" y2="228" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,5" opacity=".4"/>
+    <text x="475" y="218" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--muted)" text-anchor="middle">diff. recipient</text>
+
+    <!-- ══ TRANSACTION NODES ══ -->
+
+    <!-- T1 — Fraud, step=100 -->
+    <circle cx="215" cy="215" r="26" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="2.5" filter="url(#glow)"/>
+    <text x="215" y="211" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--fraud)">T1</text>
+    <text x="215" y="224" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--fraud)">FRAUD</text>
+    <!-- Step label -->
+    <text x="215" y="253" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">step=100</text>
+    <text x="215" y="265" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">$9,800</text>
+
+    <!-- T2 — Fraud, step=105 -->
+    <circle cx="318" cy="157" r="26" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="2.5" filter="url(#glow)"/>
+    <text x="318" y="153" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--fraud)">T2</text>
+    <text x="318" y="166" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--fraud)">FRAUD</text>
+    <text x="318" y="194" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">step=105</text>
+    <text x="318" y="206" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">$3,200</text>
+
+    <!-- T3 — Legit, step=123 -->
+    <circle cx="403" cy="215" r="26" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="2"/>
+    <text x="403" y="211" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--legit)">T3</text>
+    <text x="403" y="224" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+    <text x="403" y="253" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">step=123</text>
+    <text x="403" y="265" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">$410</text>
+
+    <!-- T4 — Legit, step=171 (too far from T1-T3, no edge) -->
+    <circle cx="400" cy="295" r="26" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="2" opacity=".6"/>
+    <text x="400" y="291" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--legit)">T4</text>
+    <text x="400" y="304" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+    <text x="400" y="332" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">step=171</text>
+    <text x="400" y="344" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">$75</text>
+
+    <!-- T5 — Legit, different nameDest -->
+    <circle cx="570" cy="225" r="26" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="2"/>
+    <text x="570" y="221" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--legit)">T5</text>
+    <text x="570" y="234" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+    <text x="570" y="263" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">step=200</text>
+
+    <!-- T6 — Legit, same nameDest Q789 as T5 -->
+    <circle cx="666" cy="258" r="26" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="2"/>
+    <text x="666" y="254" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--legit)">T6</text>
+    <text x="666" y="267" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+    <text x="666" y="296" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--muted)">step=215</text>
+
+    <!-- edge weight labels -->
+    <text x="255" y="208" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--edge)" text-anchor="middle">Δ5</text>
+    <text x="366" y="175" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--edge)" text-anchor="middle">Δ18</text>
+    <text x="308" y="206" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--edge)" text-anchor="middle">Δ23</text>
+    <text x="618" y="234" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--edge)" text-anchor="middle">Δ15</text>
+
+    <!-- bottom caption -->
+    <text x="430" y="388" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--muted)">
+      Each circle = one transaction. Edges exist only between transactions sharing the same nameDest AND |step_i − step_j| ≤ 30.
+    </text>
+  </svg>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════ -->
+<!-- SECTION 2: EDGE RULES -->
+<!-- ═════════════════════════════════════════════════════════ -->
+<div class="full-width">
+  <div class="section-label">Section 2 — Edge construction rules</div>
+</div>
+
+<div class="rule-box">
+  <div class="rule-card">
+    <div class="rule-icon" aria-hidden="true">🔗</div>
+    <h4>Rule 1 — Shared recipient</h4>
+    <p>Two transactions connect if they share the same <code>nameDest</code> account. This captures the same money destination — often a mule account receiving multiple fraudulent transfers.</p>
+  </div>
+  <div class="rule-card">
+    <div class="rule-icon" aria-hidden="true">⏱</div>
+    <h4>Rule 2 — Time window ≤ 30 steps</h4>
+    <p>Only transactions within 30 simulated hours of each other connect. Prevents a recipient with 743 hours of activity from creating millions of irrelevant edges.</p>
+  </div>
+  <div class="rule-card">
+    <div class="rule-icon" aria-hidden="true">↔</div>
+    <h4>Rule 3 — Undirected</h4>
+    <p>Edges go both ways. A fraud transaction at step 100 is relevant context for a legit transaction at step 112 going to the same account — and vice versa.</p>
+  </div>
+  <div class="rule-card">
+    <div class="rule-icon" aria-hidden="true">👤</div>
+    <h4>Note — Senders had zero edges (50k)</h4>
+    <p>In the 50k subset, every <code>nameOrig</code> appeared exactly once, so no sender-based edges formed. Only recipient-based edges exist (496 total).</p>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════ -->
+<!-- SECTION 3: NODE FEATURES + MESSAGE PASSING SIDE BY SIDE -->
+<!-- ═════════════════════════════════════════════════════════ -->
+<div class="two-col">
+
+  <!-- Feature vector -->
+  <div class="card">
+    <div class="section-label">Section 3a — The 12 node features (standardised)</div>
+    <h3>What each transaction node knows</h3>
+    <table class="feat-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Feature</th>
+          <th>Example</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><span class="feat-name">step</span></td>
+          <td><span class="feat-val">100</span></td>
+          <td class="feat-note"><span class="tag tag-raw">raw</span> Simulated hour, 1–743</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><span class="feat-name">amount</span></td>
+          <td><span class="feat-val">9.19</span></td>
+          <td class="feat-note"><span class="tag tag-raw">raw</span> log1p($9,800) — skew reduction</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><span class="feat-name">oldbalanceOrg</span></td>
+          <td><span class="feat-val">9.19</span></td>
+          <td class="feat-note"><span class="tag tag-raw">raw</span> Sender balance, log1p</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><span class="feat-name">oldbalanceDest</span></td>
+          <td><span class="feat-val">0.00</span></td>
+          <td class="feat-note"><span class="tag tag-raw">raw</span> Recipient balance, log1p. 0 = new account</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><span class="feat-name">hour_of_day</span></td>
+          <td><span class="feat-val">4</span></td>
+          <td class="feat-note"><span class="tag tag-eng">eng</span> step % 24</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><span class="feat-name">day_of_sim</span></td>
+          <td><span class="feat-val">4</span></td>
+          <td class="feat-note"><span class="tag tag-eng">eng</span> step ÷ 24</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td><span class="feat-name">pct_balance_used</span></td>
+          <td><span class="feat-val">1.00</span></td>
+          <td class="feat-note"><span class="tag tag-eng">eng</span> amount ÷ oldbalanceOrg. 1.0 = account drained</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td><span class="feat-name">type_CASH_IN</span></td>
+          <td><span class="feat-val">0</span></td>
+          <td class="feat-note"><span class="tag tag-ohe">OHE</span></td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td><span class="feat-name">type_CASH_OUT</span></td>
+          <td><span class="feat-val">0</span></td>
+          <td class="feat-note"><span class="tag tag-ohe">OHE</span></td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td><span class="feat-name">type_DEBIT</span></td>
+          <td><span class="feat-val">0</span></td>
+          <td class="feat-note"><span class="tag tag-ohe">OHE</span></td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td><span class="feat-name">type_PAYMENT</span></td>
+          <td><span class="feat-val">0</span></td>
+          <td class="feat-note"><span class="tag tag-ohe">OHE</span></td>
+        </tr>
+        <tr>
+          <td>12</td>
+          <td><span class="feat-name">type_TRANSFER</span></td>
+          <td><span class="feat-val">1</span></td>
+          <td class="feat-note"><span class="tag tag-ohe">OHE</span> Only TRANSFER &amp; CASH_OUT have fraud</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:12px; font-size:11px; color:var(--muted)">
+      <strong style="color:var(--fg)">StandardScaler applied after split</strong> — mean and std calculated on training nodes only, then used to scale all 50k nodes. Prevents data leakage from test/OOT statistics.
+    </p>
+  </div>
+
+  <!-- Message passing -->
+  <div class="card">
+    <div class="section-label">Section 3b — GraphSAGE message passing</div>
+    <h3>How T1 (fraud) aggregates its neighbours</h3>
+
+    <svg viewBox="0 0 380 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;margin-bottom:12px">
+      <!-- T1 centre -->
+      <circle cx="190" cy="165" r="34" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="2.5"/>
+      <text x="190" y="161" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="var(--fraud)">T1</text>
+      <text x="190" y="175" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--fraud)">FRAUD</text>
+
+      <!-- neighbour T2 (top-left) -->
+      <circle cx="80" cy="80" r="28" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="2"/>
+      <text x="80" y="76" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--fraud)">T2</text>
+      <text x="80" y="89" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--fraud)">FRAUD</text>
+
+      <!-- neighbour T3 (top-right) -->
+      <circle cx="300" cy="80" r="28" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="2"/>
+      <text x="300" y="76" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--legit)">T3</text>
+      <text x="300" y="89" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--legit)">LEGIT</text>
+
+      <!-- arrows from neighbours to T1 -->
+      <line x1="107" y1="99" x2="162" y2="140" stroke="var(--edge)" stroke-width="2" marker-end="url(#arr2)"/>
+      <line x1="273" y1="99" x2="218" y2="140" stroke="var(--edge)" stroke-width="2" marker-end="url(#arr2)"/>
+
+      <defs>
+        <marker id="arr2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="var(--edge)"/>
+        </marker>
+      </defs>
+
+      <!-- aggregation box -->
+      <rect x="80" y="210" width="220" height="40" rx="6" fill="rgba(88,166,255,.1)" stroke="var(--edge)" stroke-width="1"/>
+      <text x="190" y="227" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--edge)">AGGREGATE</text>
+      <text x="190" y="242" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--muted)">h_neigh = MEAN(h_T2, h_T3)</text>
+
+      <!-- arrow to aggregation -->
+      <line x1="190" y1="200" x2="190" y2="210" stroke="var(--edge)" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+      <!-- concat + transform box -->
+      <rect x="55" y="268" width="270" height="40" rx="6" fill="rgba(210,168,255,.1)" stroke="var(--feat)" stroke-width="1"/>
+      <text x="190" y="285" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--feat)">CONCATENATE + TRANSFORM</text>
+      <text x="190" y="300" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="9" fill="var(--muted)">[h_T1 ‖ h_neigh] × W → new h_T1</text>
+
+      <line x1="190" y1="250" x2="190" y2="268" stroke="var(--feat)" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+      <!-- labels -->
+      <text x="80" y="120" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="var(--edge)">h_T2</text>
+      <text x="300" y="120" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="var(--edge)">h_T3</text>
+      <text x="190" y="200" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8" fill="var(--muted)">h_T1</text>
+    </svg>
+
+    <p style="font-size:11px; color:var(--muted); line-height:1.6">
+      After <strong style="color:var(--fg)">Layer 1</strong>, T1's representation now includes a summary of T2 and T3's features.<br><br>
+      After <strong style="color:var(--fg)">Layer 2</strong>, it also includes summaries of T2 and T3's own neighbours — a <em>2-hop view</em> of the local graph.<br><br>
+      A fraud node <strong style="color:var(--fraud)">surrounded by other fraud nodes</strong> will produce a very different representation than an isolated fraud node — the GNN learns to use this difference.
+    </p>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════ -->
+<!-- SECTION 4: WHY 250K MATTERS -->
+<!-- ═════════════════════════════════════════════════════════ -->
+<div class="full-width">
+  <div class="section-label">Section 4 — Why graph density matters</div>
+</div>
+
+<div class="graph-wrap">
+  <svg viewBox="0 0 860 200" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="10" width="840" height="180" rx="10" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+
+    <!-- 50k panel -->
+    <text x="220" y="38" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--fg)">50k subset — sparse graph</text>
+    <text x="220" y="55" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">496 edges · avg 0.02/node</text>
+
+    <!-- sparse nodes: most isolated -->
+    <circle cx="80"  cy="120" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="120" cy="95"  r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="160" cy="130" r="8" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="1.5"/>
+    <circle cx="200" cy="100" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="240" cy="130" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="280" cy="110" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="320" cy="140" r="8" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="1.5"/>
+    <circle cx="360" cy="115" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <!-- only 1 edge in this panel -->
+    <line x1="160" y1="122" x2="200" y2="108" stroke="var(--edge)" stroke-width="2"/>
+    <text x="220" y="170" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--fraud)">Most nodes isolated — GNN acts like a plain MLP</text>
+
+    <!-- divider -->
+    <line x1="440" y1="20" x2="440" y2="180" stroke="var(--border)" stroke-width="1"/>
+
+    <!-- 250k panel -->
+    <text x="640" y="38" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" font-weight="600" fill="var(--fg)">250k subset — denser graph</text>
+    <text x="640" y="55" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">estimated ~12k+ edges · more neighbours</text>
+
+    <!-- denser nodes with edges -->
+    <circle cx="500" cy="120" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="540" cy="90"  r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="580" cy="125" r="8" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="2"/>
+    <circle cx="620" cy="95"  r="8" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="2"/>
+    <circle cx="660" cy="130" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="700" cy="100" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <circle cx="740" cy="125" r="8" fill="var(--fraud-bg)" stroke="var(--fraud)" stroke-width="2"/>
+    <circle cx="780" cy="110" r="8" fill="var(--legit-bg)" stroke="var(--legit)" stroke-width="1.5"/>
+    <!-- many edges -->
+    <line x1="508" y1="116" x2="532" y2="98"  stroke="var(--edge)" stroke-width="1.5" opacity=".7"/>
+    <line x1="548" y1="96"  x2="572" y2="120" stroke="var(--edge)" stroke-width="1.5" opacity=".7"/>
+    <line x1="508" y1="122" x2="572" y2="123" stroke="var(--edge)" stroke-width="1.5" opacity=".7"/>
+    <line x1="588" y1="121" x2="612" y2="99"  stroke="var(--edge)" stroke-width="2"   opacity=".9"/>
+    <line x1="628" y1="100" x2="652" y2="126" stroke="var(--edge)" stroke-width="1.5" opacity=".7"/>
+    <line x1="668" y1="126" x2="692" y2="104" stroke="var(--edge)" stroke-width="1.5" opacity=".7"/>
+    <line x1="708" y1="102" x2="732" y2="121" stroke="var(--edge)" stroke-width="1.5" opacity=".7"/>
+    <line x1="588" y1="125" x2="652" y2="128" stroke="var(--edge)" stroke-width="1.5" opacity=".5"/>
+    <line x1="740" y1="117" x2="780" y2="112" stroke="var(--edge)" stroke-width="1.5" opacity=".7"/>
+    <text x="640" y="170" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="10" fill="var(--legit)">Fraud nodes cluster → GNN message passing activates</text>
+  </svg>
+</div>
+
+<div class="callout blue">
+  <strong>Why 250k is the right next step for Model 3:</strong> The GNN's structural advantage only materialises when fraud transactions share neighbours. In the 50k subset with 496 edges, 98% of nodes are isolated — message passing contributes almost nothing, and the GNN effectively reduces to a plain feed-forward network. Scaling to 250k will create a meaningfully denser graph where the GNN can start to detect fraud clusters.
+</div>
+
+<div class="callout">
+  <strong>Current Model 3 limitation explained:</strong> OOT F1 = 0.9423 vs XGBoost's 0.9997. The GNN is architecturally correct and ready — it just needs a denser graph to show its advantage. The 50k result is not a GNN failure; it's a data-sparsity constraint.
+</div>

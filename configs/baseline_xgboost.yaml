@@ -1,0 +1,72 @@
+# ---------------------------------------------------------------------------
+# Model 1 — XGBoost Baseline (transaction features only)
+# Updated by run_eda_batch3.py — confirmed from full EDA (Batches 1-3)
+# ---------------------------------------------------------------------------
+
+mlflow_experiment: "fraud_model_1_baseline"
+
+model:
+  n_estimators: 500
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  # CORRECTED: recalculated on training split only (step <= 534)
+  # Formula: n_negatives / n_positives = 6,112,868 / 5,935 = 1030.0
+  # Full-dataset ratio (773.7) was wrong — training set has lower fraud rate (0.097%)
+  scale_pos_weight: 1030.0
+  eval_metric: "aucpr"
+  early_stopping_rounds: 30
+  random_state: 42
+
+features:
+  # Apply log1p transform to these at preprocessing time (skewed, large range)
+  log1p_transform:
+    - "amount"
+    - "oldbalanceOrg"
+    - "oldbalanceDest"
+
+  # One-hot encode (5 categories: CASH_IN, CASH_OUT, DEBIT, PAYMENT, TRANSFER)
+  one_hot_encode:
+    - "type"
+
+  # Engineered raw features (no leakage, derivable from raw columns)
+  engineered:
+    - "hour_of_day"          # step % 24
+    - "day_of_sim"           # step // 24
+    - "pct_balance_used"     # amount / oldbalanceOrg (cap div-by-zero at 0)
+
+  # EXCLUDED: post-settlement leakage
+  exclude_leakage:
+    - "newbalanceOrig"       # post-settlement; 98% zero in fraud — LEAKAGE
+    - "newbalanceDest"       # post-settlement — LEAKAGE
+
+  # EXCLUDED: simulation artefact
+  exclude_artefact:
+    - "isFlaggedFraud"       # 16 flagged rows, 0.19% recall, simulation rule-based
+
+  # EXCLUDED: identifiers (high-cardinality, not encodable directly)
+  exclude_identifiers:
+    - "nameOrig"             # 6.3M unique — graph construction only
+    - "nameDest"             # 2.7M unique — graph construction only
+
+  # EXCLUDED: balance_discrepancy (uses newbalanceOrig — post-settlement leakage)
+  # pct_balance_used is the safe alternative (uses only amount + oldbalanceOrg)
+  exclude_leakage_engineered:
+    - "balance_discrepancy"
+
+validation:
+  train_end_step: 534
+  val_end_step: 638
+  primary_metric: "pr_auc"
+  secondary_metrics:
+    - "roc_auc"
+    - "f1"
+    - "precision"
+    - "recall"
+  # Threshold is selected by sweeping val set; applied once to test set
+  threshold_sweep_range: [0.01, 0.99]
+  threshold_sweep_steps: 99
+
+artifacts_dir: "artifacts/model_1_baseline"
+predictions_dir: "data/model_1_baseline/output"

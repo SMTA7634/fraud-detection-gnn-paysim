@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "fraud-detection"
+version = "0.1.0"
+description = "Graph-Based Fraud Detection: XGBoost Baseline → Graph Features → GNN"
+requires-python = ">=3.11"
+dependencies = [
+    # Data
+    "pandas>=2.1",
+    "numpy>=1.26",
+    "pyarrow>=14.0",          # fast parquet I/O for intermediate data
+    # ML — classical
+    "scikit-learn>=1.4",
+    "xgboost>=2.0",
+    # Deep learning
+    "torch>=2.2",             # CPU build by default; swap wheel for CUDA when needed
+    # Graph learning (install separately — see environment setup below)
+    # torch-geometric>=2.5 requires torch to be installed first
+    "networkx>=3.2",
+    # MLOps
+    "mlflow>=2.11",
+    # Explainability
+    "shap>=0.45",
+    # Visualisation
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    # Config
+    "pyyaml>=6.0",
+    # Dev & testing
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "jupyterlab>=4.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["fraud_detection"]
+omit = ["tests/*"]

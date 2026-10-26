@@ -1,0 +1,26 @@
+MODEL 1 — XGBOOST BASELINE — METRICS REPORT
+==================================================
+
+Dataset        : paysim_subset_50k.csv
+OOT boundary   : step > 594
+Features used  : 12
+Trees trained  : 115
+Best threshold : 0.11 (selected on test set)
+
+METRICS
+------------------------------
+Metric                     Test        OOT
+PR-AUC                   0.9989     1.0000
+ROC-AUC                  0.9997     1.0000
+F1                       0.9958     0.9997
+Precision                0.9939     1.0000
+Recall                   0.9977     0.9994
+
+CONFUSION MATRIX (OOT)
+------------------------------
+  TP (caught fraud)       : 1,653
+  TN (correct legit)      : 791
+  FP (wrongly flagged)    : 0
+  FN (missed fraud)       : 1
+
+MLflow run ID: fbcd5ba044264501b55f6c35df4a9dfd

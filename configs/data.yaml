@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# Data configuration — single source of truth for paths and split boundaries
+# ---------------------------------------------------------------------------
+
+raw_file: "data/shared/raw/PaySim_kaggle_raw_data.csv"
+
+target_column: "isFraud"
+
+# Chronological split by PaySim time step (max step = 743)
+# These boundaries are PROPOSED — confirm after running Phase 1 EDA
+# Rule: no future data leaks into train; test set is untouched until Phase 6
+splits:
+  train_end_step: 534       # ~72% of time steps
+  val_end_step: 638         # ~86% of time steps
+  # test: step > 638
+
+random_seed: 42
+
+# Columns to inspect for leakage (investigated in Phase 1)
+leakage_candidates:
+  - "oldbalanceOrg"
+  - "newbalanceOrig"
+  - "oldbalanceDest"
+  - "newbalanceDest"
+  - "nameOrig"
+  - "nameDest"
+  - "isFlaggedFraud"

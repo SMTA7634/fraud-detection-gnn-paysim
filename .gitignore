@@ -1,0 +1,30 @@
+# ── Raw data (too large for GitHub) ──────────────────────────────────────
+data/shared/raw/PaySim_kaggle_raw_data.csv
+data/shared/raw/paysim_subset_250k.csv
+
+# ── MLflow runtime files ──────────────────────────────────────────────────
+mlflow.db
+mlruns/
+
+# ── Python cache ──────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# ── OS files ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Jupyter checkpoints ───────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Large GNN model weights ───────────────────────────────────────────────
+artifacts/model_3_gnn/gnn_model.pt
+artifacts/model_4_account_gnn/gnn_model.pt
+
+# ── Virtual environments (not used in this project, but just in case) ─────
+venv/
+.venv/
+env/
